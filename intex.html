@@ -1,0 +1,1835 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Redação Pro - Eixos Vibrantes</title>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg: #f8f9fa; --card: #ffffff; --text: #1d1d1f; --text-alt: #4b4b4b;
+            --primary: #7b2cff; --sidebar: #1a1a1d; --input: #f2f2f7;
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            --shadow: 0 8px 30px rgba(0,0,0,0.04);
+            --cor-direitos: #d63031; --cor-educacao: #f1c40f; --cor-tecnologia: #0984e3;
+            --cor-saude: #e84393; --cor-meio-ambiente: #27ae60;
+        }
+        .dark {
+            --bg: #000000; --card: #1c1c1e; --text: #ffffff; --text-alt: #a1a1a6;
+            --primary: #9b5cff; --sidebar: #121214; --input: #2c2c2e;
+            --shadow: 0 8px 30px rgba(0,0,0,0.3);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        /* Ajuste para o menu acompanhar o scroll no Desktop */
+        body { 
+            display: flex; 
+            align-items: flex-start; /* Alinha ao topo para o sticky funcionar */
+            min-height: 100vh; 
+            background: var(--bg); 
+            color: var(--text); 
+            transition: background 0.3s; 
+        }
+
+        /* Sidebar com efeito Sticky */
+        .sidebar { 
+            width: 80px; 
+            background: var(--sidebar); 
+            padding: 20px 0; 
+            transition: var(--transition); 
+            display: flex; 
+            flex-direction: column; 
+            z-index: 1000; 
+            align-items: center; 
+            overflow-x: hidden;
+            position: sticky; /* Acompanha o scroll */
+            top: 0; 
+            height: 100vh; 
+        }
+        
+        .sidebar.expanded { width: 240px; align-items: flex-start; padding: 20px 15px; }
+
+        .logo { height: 60px; display: flex; align-items: center; justify-content: center; color: var(--primary); font-weight: 800; margin-bottom: 20px; width: 100%; font-size: 28px; }
+        .logo span { display: inline-block; max-width: 0; opacity: 0; overflow: hidden; transition: var(--transition); }
+        .sidebar.expanded .logo span { max-width: 150px; opacity: 1; margin-left: 2px; }
+
+        .menu { display: flex; flex-direction: column; gap: 8px; width: 100%; align-items: center; }
+        .sidebar.expanded .menu { align-items: flex-start; }
+
+        .menu button { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 12px; border: none; background: none; color: #8e8e93; border-radius: 14px; cursor: pointer; transition: var(--transition); width: 54px; height: 54px; flex-shrink: 0; }
+        .sidebar.expanded .menu button { width: 100%; justify-content: flex-start; padding-left: 20px; }
+        
+        .btn-direitos.active { background: var(--cor-direitos) !important; color: white !important; }
+        .btn-educacao.active { background: var(--cor-educacao) !important; color: #000 !important; }
+        .btn-tecnologia.active { background: var(--cor-tecnologia) !important; color: white !important; }
+        .btn-saude.active { background: var(--cor-saude) !important; color: white !important; }
+        .btn-ambiente.active { background: var(--cor-meio-ambiente) !important; color: white !important; }
+        .menu button.active:not([class*="btn-"]) { background: var(--primary) !important; color: white !important; }
+
+        .menu button span:last-child { display: inline-block; max-width: 0; opacity: 0; overflow: hidden; transition: var(--transition); white-space: nowrap; }
+        .sidebar.expanded .menu button span:last-child { max-width: 200px; opacity: 1; }
+
+        .main { flex: 1; padding: 25px; width: 100%; max-width: 1000px; margin: 0 auto; }
+        .user-banner { background: var(--primary); color: white; padding: 25px; border-radius: 24px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; transition: background 0.3s; }
+        .banner-info { display: flex; align-items: center; gap: 14px; }
+        .banner-icon { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 16px; background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.24); font-size: 23px; box-shadow: inset 0 1px rgba(255,255,255,0.2); }
+
+        input, textarea, select { width: 100%; margin-top: 10px; padding: 16px; border: none; border-radius: 16px; background: var(--input); color: var(--text); font-size: 16px; outline: none; }
+        select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%238e8e93' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 40px; }
+        
+        .editor-wrapper { background: var(--input); border-radius: 18px; margin-top: 15px; overflow: hidden; border: 2px solid transparent; transition: 0.3s; }
+        .editor-wrapper:focus-within { border-color: var(--primary); background: var(--card); }
+        .toolbar { display: flex; gap: 8px; padding: 10px; background: rgba(0,0,0,0.03); border-bottom: 1px solid rgba(0,0,0,0.05); flex-wrap: wrap; }
+        .toolbar button { background: var(--card); border: 1px solid rgba(0,0,0,0.1); padding: 6px 12px; border-radius: 8px; cursor: pointer; color: var(--text); font-weight: bold; font-size: 13px; transition: 0.2s; }
+        .toolbar button:hover { background: var(--primary); color: white; }
+        .color-btn { width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.1); padding: 0 !important; }
+        .editor-content { padding: 16px; min-height: 120px; outline: none; color: var(--text); line-height: 1.6; font-size: 16px; overflow-y: auto; }
+        .editor-content:empty:before { content: attr(data-placeholder); opacity: 0.5; }
+
+        .search-bar { position: relative; margin-bottom: 20px; }
+        .search-bar input { padding-left: 45px; border: 2px solid transparent; transition: 0.3s; }
+        .search-bar input:focus { border-color: var(--primary); background: var(--card); }
+        .search-bar::before { content: "🔍"; position: absolute; left: 18px; top: 26px; z-index: 10; opacity: 0.5; }
+
+        .filter-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; padding: 0 5px; }
+        .filter-bar span { font-size: 14px; font-weight: 600; color: var(--text-alt); }
+        .filter-bar select { margin-top: 0; padding: 8px 30px 8px 15px; font-size: 14px; width: auto; border-radius: 10px; }
+        .summary-bar { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: -4px 0 14px; }
+        .summary-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+        .total-repertorios { display: flex; align-items: baseline; gap: 5px; color: var(--text-alt); font-size: 12px; font-weight: 600; letter-spacing: 0.01em; }
+        .total-repertorios::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--primary); opacity: 0.75; }
+        .total-repertorios strong { color: var(--text); font-size: 13px; }
+        .progress-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; border: 1px solid color-mix(in srgb, var(--primary) 18%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--primary) 8%, var(--card)); color: var(--primary); font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: 0.2s; }
+        .progress-toggle::before { content: '▥'; font-size: 14px; line-height: 1; }
+        .progress-toggle:hover { background: var(--primary); border-color: var(--primary); color: white; transform: translateY(-1px); }
+        .favorite-filter { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 10px; border: 1px solid var(--input); border-radius: 10px; background: var(--card); color: var(--text-alt); font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .favorite-filter:hover { border-color: #e5a000; color: #e5a000; }
+        .favorite-filter.active { background: #fff7df; border-color: #e5a000; color: #c88700; }
+        .progress-panel { background: var(--card); border-radius: 18px; box-shadow: var(--shadow); padding: 18px; margin-bottom: 20px; }
+        .progress-panel h3 { font-size: 13px; margin-bottom: 14px; color: var(--text-alt); }
+        .progress-list { display: grid; gap: 11px; }
+        .progress-row { display: grid; grid-template-columns: minmax(100px, 150px) 1fr 24px; align-items: center; gap: 10px; font-size: 12px; color: var(--text-alt); }
+        .progress-track { height: 6px; overflow: hidden; border-radius: 20px; background: var(--input); }
+        .progress-fill { height: 100%; border-radius: inherit; transition: width 0.35s ease; }
+        .progress-count { text-align: right; font-weight: 700; color: var(--text); }
+        .grade-stats { background: var(--card); border-radius: 18px; box-shadow: var(--shadow); padding: 18px; margin-bottom: 20px; }
+        .grade-stats h3 { font-size: 13px; margin-bottom: 14px; color: var(--text-alt); }
+        .grade-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .grade-summary div { padding: 10px; border-radius: 12px; background: var(--input); }
+        .grade-summary span { display: block; color: var(--text-alt); font-size: 11px; font-weight: 700; }
+        .grade-summary strong { display: block; margin-top: 4px; font-size: 16px; }
+        .grade-bars { display: flex; align-items: end; gap: 6px; height: 70px; margin-top: 16px; padding-top: 5px; border-bottom: 1px solid var(--input); }
+        .grade-bar { flex: 1; min-width: 16px; border-radius: 6px 6px 0 0; background: linear-gradient(180deg, var(--primary), #b992ff); }
+        .grade-empty { color: var(--text-alt); font-size: 13px; }
+        .favorite-btn { position: absolute; top: 18px; right: 18px; width: 32px; height: 32px; border: none; border-radius: 50%; background: var(--input); color: var(--text-alt); cursor: pointer; font-size: 17px; line-height: 1; transition: 0.2s; }
+        .favorite-btn:hover, .favorite-btn.active { background: #fff3cd; color: #e5a000; }
+        .flash-meta { display: flex; justify-content: center; gap: 10px; align-items: center; color: var(--text-alt); font-size: 13px; font-weight: 600; }
+        .flash-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+        .flash-actions button { padding: 9px 14px; border-radius: 12px; border: 1px solid var(--input); background: var(--card); color: var(--text); cursor: pointer; font-weight: 600; }
+        .flash-actions button.active { color: white; background: var(--primary); border-color: var(--primary); }
+        @media (max-width: 520px) { .progress-row { grid-template-columns: 90px 1fr 20px; gap: 8px; } }
+
+        .group-title { grid-column: 1 / -1; margin: 15px 0 5px 5px; font-size: 14px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--text-alt); }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .card { background: var(--card); padding: 25px; border-radius: 24px; box-shadow: var(--shadow); transition: 0.3s ease; border: 1px solid rgba(0,0,0,0.02); cursor: pointer; border-left: 8px solid transparent; }
+        .dot { width: 12px; height: 12px; border-radius: 6px; opacity: 0.2; cursor: pointer; transition: 0.3s; }
+        .dot.active { opacity: 1; transform: scale(1.2); }
+        .red { background: #ff3b30; } .yellow { background: #ffcc00; } .green { background: #34c759; }
+
+        .flash-scene { width: 100%; max-width: 400px; height: 300px; perspective: 1000px; margin: 20px auto; }
+        .flash-card-inner { width: 100%; height: 100%; transition: transform 0.6s; transform-style: preserve-3d; cursor: pointer; position: relative; }
+        .flash-card-inner.is-flipped { transform: rotateY(180deg); }
+        .flash-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 30px; border-radius: 30px; background: var(--card); border: 2px solid var(--primary); text-align: center; }
+        .flash-back { transform: rotateY(180deg); background: var(--input); }
+
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; padding: 20px; z-index: 1000; backdrop-filter: blur(10px); }
+        .modal-content { background: var(--card); width: auto; min-width: 320px; max-width: 800px; max-height: 85vh; padding: 40px 30px; border-radius: 32px; position: relative; transform: scale(0.9); transition: 0.3s; overflow-y: auto; display: block; color: var(--text); box-shadow: 0 30px 60px rgba(0,0,0,0.2); border-top: 10px solid var(--primary); }
+        .close-btn { position: absolute; top: 15px; right: 15px; width: 36px; height: 36px; background: var(--input); border-radius: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px; z-index: 11; }
+        .btn-save { width: 100%; margin-top: 25px; padding: 18px; background: var(--primary); color: white; border: none; border-radius: 18px; font-weight: 700; cursor: pointer; transition: background 0.3s; }
+
+        @media (max-width: 768px) {
+            .sidebar { 
+                position: fixed; 
+                left: -260px; 
+                height: 100vh; 
+                width: 260px !important; 
+                align-items: flex-start; 
+                padding: 20px 15px; 
+                z-index: 2000;
+                top: 0;
+            }
+            .sidebar.active { left: 0; box-shadow: 15px 0 30px rgba(0,0,0,0.3); }
+            
+            .sidebar.active .logo span, 
+            .sidebar.active .menu button span:last-child { 
+                max-width: 200px; 
+                opacity: 1; 
+                margin-left: 5px;
+            }
+            .sidebar.active .menu { align-items: flex-start; }
+            .sidebar.active .menu button { 
+                width: 100%; 
+                justify-content: flex-start; 
+                padding-left: 15px; 
+            }
+
+            .overlay { 
+                display: block; 
+                visibility: hidden; 
+                opacity: 0; 
+                position: fixed; 
+                inset: 0; 
+                background: rgba(0,0,0,0.5); 
+                z-index: 1500; 
+                backdrop-filter: blur(3px); 
+                transition: opacity 0.4s ease, visibility 0.4s ease; 
+            }
+            .overlay.active { 
+                visibility: visible; 
+                opacity: 1; 
+            }
+        }
+
+        /* === ANIMAÇÕES GERAIS === */
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(15px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.card {
+    animation: fadeUp 0.4s ease;
+}
+
+/* Hover mais vivo */
+.card:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+}
+
+/* Botões com feedback */
+button:active {
+    transform: scale(0.96);
+}
+
+/* Modal mais suave */
+.modal-content {
+    opacity: 0;
+}
+
+.modal[style*="flex"] .modal-content {
+    animation: modalPop 0.35s ease forwards;
+}
+
+@keyframes modalPop {
+    from {
+        transform: scale(0.85);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Flashcard flip mais fluido */
+.flash-card-inner {
+    transition: transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Botão Voltar ao Topo */
+#backToTop {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    transition: var(--transition);
+    opacity: 0;
+    visibility: hidden;
+    z-index: 999;
+}
+
+#backToTop.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+#backToTop:hover {
+    transform: scale(1.1);
+    filter: brightness(1.1);
+}
+
+/* Ajuste para mobile para não sobrepor outros elementos se necessário */
+@media (max-width: 768px) {
+    #backToTop {
+        bottom: 20px;
+        right: 20px;
+        width: 45px;
+        height: 45px;
+    }
+}
+    
+/* ===== VISUAL PREMIUM UPGRADE ===== */
+
+body::before{
+    content:'';
+    position:fixed;
+    inset:0;
+    background:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size:40px 40px;
+    pointer-events:none;
+    z-index:-3;
+    animation:gridMove 18s linear infinite;
+}
+
+body::after{
+    content:'';
+    position:fixed;
+    inset:0;
+    background:
+        radial-gradient(circle at 15% 20%, rgba(123,44,255,0.18), transparent 20%),
+        radial-gradient(circle at 85% 30%, rgba(0,122,255,0.16), transparent 25%),
+        radial-gradient(circle at 40% 80%, rgba(52,199,89,0.12), transparent 22%);
+    filter: blur(50px);
+    z-index:-4;
+    animation:aurora 12s ease-in-out infinite alternate;
+}
+
+@keyframes aurora{
+    from{transform:translateY(0) scale(1);}
+    to{transform:translateY(-20px) scale(1.08);}
+}
+
+@keyframes gridMove{
+    from{transform:translateY(0px);}
+    to{transform:translateY(40px);}
+}
+
+.floating-bg{
+    position:fixed;
+    inset:0;
+    overflow:hidden;
+    z-index:-2;
+    pointer-events:none;
+}
+
+.floating-bg span{
+    position:absolute;
+    display:block;
+    border-radius:50%;
+    background:rgba(255,255,255,0.08);
+    backdrop-filter: blur(4px);
+    animation:floatBall linear infinite;
+}
+
+@keyframes floatBall{
+    from{
+        transform:translateY(110vh) rotate(0deg);
+        opacity:0;
+    }
+    10%{opacity:1;}
+    90%{opacity:1;}
+    to{
+        transform:translateY(-120vh) rotate(360deg);
+        opacity:0;
+    }
+}
+
+.main{
+    animation:fadeMain 0.8s ease;
+}
+
+@keyframes fadeMain{
+    from{
+        opacity:0;
+        transform:translateY(20px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+.user-banner{
+    position:relative;
+    overflow:hidden;
+    box-shadow:
+        0 10px 40px rgba(123,44,255,0.22),
+        inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.user-banner::before{
+    content:'';
+    position:absolute;
+    top:-50%;
+    left:-20%;
+    width:60%;
+    height:220%;
+    background:linear-gradient(
+        90deg,
+        transparent,
+        rgba(255,255,255,0.18),
+        transparent
+    );
+    transform:rotate(18deg);
+    animation:shine 5s linear infinite;
+}
+
+@keyframes shine{
+    from{left:-50%;}
+    to{left:130%;}
+}
+
+.card{
+    position:relative;
+    overflow:hidden;
+    backdrop-filter: blur(10px);
+    background:linear-gradient(
+        180deg,
+        rgba(255,255,255,0.95),
+        rgba(255,255,255,0.85)
+    );
+}
+
+.dark .card{
+    background:linear-gradient(
+        180deg,
+        rgba(28,28,30,0.95),
+        rgba(28,28,30,0.75)
+    );
+}
+
+.card::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:linear-gradient(
+        135deg,
+        rgba(255,255,255,0.18),
+        transparent 40%
+    );
+    opacity:0;
+    transition:0.5s;
+}
+
+.card:hover::before{
+    opacity:1;
+}
+
+.card:hover{
+    transform:translateY(-10px) scale(1.025);
+    box-shadow:
+        0 25px 60px rgba(0,0,0,0.12),
+        0 0 0 1px rgba(255,255,255,0.1);
+}
+
+.menu button{
+    position:relative;
+    overflow:hidden;
+}
+
+.menu button::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:linear-gradient(
+        120deg,
+        transparent,
+        rgba(255,255,255,0.15),
+        transparent
+    );
+    transform:translateX(-120%);
+}
+
+.menu button:hover::before{
+    animation:buttonLight 0.7s ease;
+}
+
+@keyframes buttonLight{
+    to{
+        transform:translateX(120%);
+    }
+}
+
+input, textarea, select, .editor-wrapper{
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.5),
+        0 5px 20px rgba(0,0,0,0.03);
+}
+
+input:focus, textarea:focus, select:focus{
+    transform:translateY(-1px);
+}
+
+.flash-face{
+    box-shadow:
+        0 20px 60px rgba(123,44,255,0.18),
+        inset 0 1px 0 rgba(255,255,255,0.15);
+}
+
+.modal{
+    background:rgba(0,0,0,0.55);
+}
+
+.modal-content{
+    backdrop-filter: blur(20px);
+    border:1px solid rgba(255,255,255,0.08);
+}
+
+#backToTop{
+    animation:pulseFloat 2s ease-in-out infinite;
+}
+
+@keyframes pulseFloat{
+    0%,100%{
+        transform:translateY(0);
+    }
+    50%{
+        transform:translateY(-4px);
+    }
+}
+
+.search-bar input{
+    backdrop-filter: blur(8px);
+}
+
+.group-title{
+    position:relative;
+    padding-left:16px;
+}
+
+.group-title::before{
+    content:'';
+    position:absolute;
+    left:0;
+    top:50%;
+    transform:translateY(-50%);
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:currentColor;
+    box-shadow:0 0 12px currentColor;
+}
+
+
+
+/* ===== DARK MODE + 3D DETAILS ===== */
+
+.dark{
+    background:
+        radial-gradient(circle at top left, rgba(123,44,255,0.18), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(0,122,255,0.12), transparent 35%),
+        #050507 !important;
+}
+
+.dark body{
+    background:#050507;
+}
+
+.dark .card,
+.dark .modal-content,
+.dark .editor-wrapper,
+.dark input,
+.dark select{
+    border:1px solid rgba(255,255,255,0.06);
+    box-shadow:
+        0 15px 40px rgba(0,0,0,0.55),
+        inset 0 1px 0 rgba(255,255,255,0.04),
+        inset 0 -1px 0 rgba(255,255,255,0.02);
+}
+
+.card{
+    transform-style: preserve-3d;
+}
+
+.card:hover{
+    transform:
+        perspective(1200px)
+        rotateX(4deg)
+        rotateY(-4deg)
+        translateY(-10px)
+        scale(1.025);
+}
+
+.card::after{
+    content:'';
+    position:absolute;
+    width:120px;
+    height:120px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(255,255,255,0.18), transparent 70%);
+    top:-40px;
+    right:-40px;
+    opacity:0;
+    transition:0.5s;
+}
+
+.card:hover::after{
+    opacity:1;
+}
+
+.user-banner{
+    transform-style:preserve-3d;
+}
+
+.user-banner:hover{
+    transform:perspective(1400px) rotateX(2deg);
+}
+
+.sidebar{
+    backdrop-filter: blur(18px);
+    border-right:1px solid rgba(255,255,255,0.05);
+    box-shadow: 10px 0 40px rgba(0,0,0,0.35);
+}
+
+.dark .sidebar{
+    background:rgba(10,10,12,0.88) !important;
+}
+
+.menu button:hover{
+    transform:
+        perspective(800px)
+        translateZ(8px)
+        scale(1.03);
+}
+
+.flash-face{
+    transform-style: preserve-3d;
+}
+
+.flash-face h2,
+.flash-face p,
+.flash-face span{
+    transform: translateZ(30px);
+}
+
+.flash-card-inner.is-flipped{
+    transform: rotateY(180deg);
+}
+
+.dark .group-title{
+    text-shadow:0 0 15px currentColor;
+}
+
+.dark .toolbar{
+    background:rgba(255,255,255,0.02);
+}
+
+.dark .editor-wrapper:focus-within{
+    box-shadow:
+        0 0 0 1px rgba(123,44,255,0.5),
+        0 0 40px rgba(123,44,255,0.15);
+}
+
+#backToTop{
+    box-shadow:
+        0 10px 35px rgba(123,44,255,0.4),
+        0 0 20px rgba(123,44,255,0.25);
+}
+
+#backToTop:hover{
+    transform:
+        scale(1.12)
+        translateY(-2px);
+}
+
+/* ===== CARD CLEAN COM REFLEXO ===== */
+
+.card{
+    position: relative;
+    overflow: hidden;
+
+    backdrop-filter: blur(10px);
+
+    background: linear-gradient(
+        180deg,
+        rgba(255,255,255,0.95),
+        rgba(248,248,250,0.90)
+    );
+
+    border-radius: 24px;
+    border: 1px solid rgba(0,0,0,0.03);
+    border-left: 8px solid transparent;
+
+    box-shadow:
+        0 8px 24px rgba(0,0,0,0.05);
+
+    transition:
+        transform .35s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow .35s cubic-bezier(0.4, 0, 0.2, 1),
+        border-color .35s cubic-bezier(0.4, 0, 0.2, 1),
+        background .35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* único efeito: reflexo passando */
+.card::before{
+    content:'';
+    position:absolute;
+    inset:0;
+
+    background: linear-gradient(
+        120deg,
+        transparent,
+        rgba(255,255,255,0.10),
+        transparent
+    );
+
+    transform: translateX(-120%);
+}
+
+/* remove qualquer glow antigo */
+.card::after{
+    display:none;
+}
+
+/* reflexo */
+.card:hover::before{
+    animation: cardLight 0.8s ease;
+}
+
+@keyframes cardLight{
+    to{
+        transform: translateX(120%);
+    }
+}
+
+/* hover */
+.card:hover{
+    transform:
+        translateY(-4px)
+        scale(1.015);
+
+    box-shadow:
+        0 16px 34px rgba(0,0,0,0.10);
+}
+
+/* ===== DARK MODE ===== */
+
+.dark .card{
+    background: linear-gradient(
+        180deg,
+        rgba(30,30,34,0.95),
+        rgba(22,22,26,0.93)
+    );
+
+    border: 1px solid rgba(255,255,255,0.04);
+
+    box-shadow:
+        0 10px 28px rgba(0,0,0,0.38);
+}
+
+/* reflexo dark */
+.dark .card::before{
+    background: linear-gradient(
+        120deg,
+        transparent,
+        rgba(255,255,255,0.05),
+        transparent
+    );
+}
+
+/* hover dark */
+.dark .card:hover{
+    border-color:
+        rgba(255,255,255,0.06);
+
+    box-shadow:
+        0 18px 38px rgba(0,0,0,0.48);
+}
+
+.dark .user-banner{
+    box-shadow:
+        0 20px 60px rgba(123,44,255,0.25),
+        0 0 40px rgba(123,44,255,0.15);
+}
+
+.dark body::before{
+    opacity:0.12;
+}
+
+.dark .floating-bg span{
+    background:rgba(255,255,255,0.04);
+    box-shadow:0 0 25px rgba(123,44,255,0.2);
+}
+
+/* ===== EDITOR DE REDAÇÕES ===== */
+.redacao-library { max-width: 860px; margin: 0 auto; }
+.redacao-library-header { display: flex; justify-content: space-between; align-items: center; gap: 18px; margin-bottom: 26px; }
+.redacao-library-header h2 { font-size: 28px; letter-spacing: -0.04em; }
+.redacao-library-header p { color: var(--text-alt); margin-top: 5px; font-size: 14px; }
+.btn-nova-redacao, .btn-salvar-redacao { padding: 12px 16px; border: none; border-radius: 13px; background: var(--primary); color: white; cursor: pointer; font-weight: 800; box-shadow: 0 10px 24px rgba(123,44,255,0.22); transition: 0.2s; white-space: nowrap; }
+.btn-nova-redacao:hover, .btn-salvar-redacao:hover { transform: translateY(-2px); filter: brightness(1.08); }
+.redacoes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(245px, 1fr)); gap: 15px; }
+.redacao-item { padding: 20px; border: 1px solid rgba(123,44,255,0.10); border-radius: 18px; background: var(--card); box-shadow: var(--shadow); }
+.redacao-item h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; }
+.redacao-item p { margin: 8px 0 17px; color: var(--text-alt); font-size: 12px; }
+.redacao-grade { display: inline-block; margin-bottom: 13px; padding: 5px 8px; border-radius: 8px; background: #7b2cff12; color: var(--primary); font-size: 11px; font-weight: 800; }
+.redacao-item-actions { display: flex; gap: 8px; }
+.redacao-item-actions button { flex: 1; padding: 9px; border: 1px solid var(--input); border-radius: 10px; background: var(--input); color: var(--text); cursor: pointer; font-weight: 700; }
+.redacao-item-actions button:first-child { background: var(--primary); border-color: var(--primary); color: white; }
+.redacao-item-actions .btn-excluir-redacao { flex: 0; width: 38px; color: #d63031; background: #ff3b3010; border-color: #ff3b3020; }
+.sem-redacoes { grid-column: 1 / -1; padding: 48px 20px; border: 1px dashed var(--primary); border-radius: 20px; text-align: center; color: var(--text-alt); }
+.redacao-workspace { max-width: 920px; margin: 0 auto; }
+.redacao-topbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+.redacao-title { width: auto; flex: 1; margin: 0; padding: 12px 14px; border-radius: 12px; font-weight: 700; background: var(--card); }
+.redacao-stats { color: var(--text-alt); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.redacao-details { display: grid; grid-template-columns: 1.3fr 0.7fr 0.7fr; gap: 10px; margin-bottom: 14px; }
+.redacao-details input, .redacao-details select { margin: 0; padding: 11px 13px; border-radius: 12px; font-size: 14px; }
+.spellcheck-toggle { display: inline-flex; align-items: center; gap: 8px; color: var(--text-alt); font-size: 12px; font-weight: 700; cursor: pointer; }
+.spellcheck-toggle input { width: auto; margin: 0; accent-color: var(--primary); }
+.redacao-notas { width: 100%; min-height: 86px; margin: 14px 0 0; padding: 13px; border: 1px solid var(--input); border-radius: 12px; background: var(--card); color: var(--text); font-size: 14px; line-height: 1.5; resize: vertical; }
+.redacao-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding: 10px; margin-bottom: 16px; border: 1px solid rgba(123,44,255,0.13); border-radius: 16px; background: color-mix(in srgb, var(--card) 88%, transparent); }
+.redacao-toolbar button, .zoom-control button { min-width: 32px; height: 32px; padding: 0 9px; border: 1px solid var(--input); border-radius: 9px; background: var(--card); color: var(--text); cursor: pointer; font-size: 13px; font-weight: 700; transition: 0.2s; }
+.redacao-toolbar button:hover, .zoom-control button:hover { color: white; background: var(--primary); border-color: var(--primary); }
+.toolbar-divider { width: 1px; height: 22px; margin: 0 2px; background: var(--input); }
+.zoom-control { display: flex; align-items: center; gap: 7px; margin-left: auto; color: var(--text-alt); font-size: 12px; font-weight: 700; }
+.zoom-control input { width: 90px; margin: 0; padding: 0; accent-color: var(--primary); box-shadow: none; }
+.highlight-picker { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border: 1px solid var(--input); border-radius: 9px; background: var(--card); }
+.highlight-picker input { width: 24px; height: 24px; margin: 0; padding: 0; border: none; background: none; cursor: pointer; }
+.redacao-stage { display: flex; align-items: flex-start; gap: 22px; min-height: 1120px; padding: 34px 0; background: transparent; }
+.redacao-page { flex: 1; width: 650px; min-height: 1000px; margin: 0; padding: 76px 64px; transform-origin: top center; background: #fffdf9; color: #292523; box-shadow: 0 22px 55px rgba(20,15,10,0.20); font-family: Georgia, 'Times New Roman', serif; font-size: 17px; line-height: 1.8; outline: none; transition: transform 0.2s; }
+.redacao-page:empty::before { content: attr(data-placeholder); color: #a59d97; pointer-events: none; }
+.dark .redacao-page { background: #252329; color: #f4f0ec; box-shadow: 0 22px 55px rgba(0,0,0,0.45); }
+.dark .redacao-page:empty::before { color: #918a85; }
+.mapa-mental { position: sticky; top: 20px; flex: 0 0 270px; padding: 14px; border: 1px solid rgba(123,44,255,0.18); border-radius: 18px; background: color-mix(in srgb, var(--card) 92%, var(--primary)); box-shadow: var(--shadow); }
+.mapa-mental-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+.mapa-mental-header h3 { font-size: 13px; }
+.mapa-mental-header button { padding: 7px 9px; border: none; border-radius: 9px; background: var(--primary); color: white; font-size: 11px; font-weight: 800; cursor: pointer; }
+.mapa-mental p { margin-bottom: 10px; color: var(--text-alt); font-size: 11px; line-height: 1.4; }
+.mapa-canvas { position: relative; height: 440px; overflow: hidden; border-radius: 13px; background-image: radial-gradient(circle, rgba(123,44,255,0.28) 1px, transparent 1px); background-size: 14px 14px; border: 1px solid rgba(123,44,255,0.12); }
+.mapa-linhas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.mapa-node { position: absolute; width: 132px; min-height: 60px; padding: 10px 28px 10px 11px; border: 1px solid rgba(123,44,255,0.22); border-radius: 12px; background: var(--card); box-shadow: 0 8px 18px rgba(0,0,0,0.10); color: var(--text); font-size: 12px; line-height: 1.35; cursor: grab; user-select: none; }
+.mapa-node:active { cursor: grabbing; }
+.mapa-node [contenteditable] { outline: none; user-select: text; cursor: text; }
+.mapa-handle { position: absolute; right: 7px; top: 21px; width: 17px; height: 17px; padding: 0; border: none; border-radius: 50%; background: var(--primary); color: white; cursor: crosshair; font-size: 11px; line-height: 17px; }
+.mapa-remover { position: absolute; top: 3px; right: 5px; border: none; background: transparent; color: var(--text-alt); cursor: pointer; font-size: 14px; line-height: 1; }
+.mapa-vazio { display: grid; height: 100%; place-items: center; padding: 20px; color: var(--text-alt); font-size: 12px; text-align: center; }
+.redacao-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; color: var(--text-alt); font-size: 12px; }
+.btn-voltar-redacoes { padding: 9px 0; border: none; background: transparent; color: var(--text-alt); cursor: pointer; font-weight: 700; }
+.btn-voltar-redacoes:hover { color: var(--primary); }
+@media (max-width: 860px) { .redacao-stage { flex-direction: column; } .redacao-page { width: 100%; margin: 0 auto; } .mapa-mental { position: static; width: 100%; flex-basis: auto; } }
+@media (max-width: 600px) { .grade-summary { grid-template-columns: 1fr; } .redacao-library-header { align-items: flex-start; flex-direction: column; } .redacao-topbar { align-items: stretch; flex-direction: column; } .redacao-details { grid-template-columns: 1fr 1fr; } .redacao-details select { grid-column: 1 / -1; } .zoom-control { margin-left: 0; } .redacao-stage { min-height: 720px; padding: 14px 0; } .redacao-page { min-height: 900px; padding: 42px 28px; font-size: 16px; } }
+
+
+</style>
+</head>
+<body>
+
+<div class="floating-bg">
+<span style="left:5%; width:14px; height:14px; animation-duration:22s; animation-delay:0s;"></span>
+<span style="left:18%; width:8px; height:8px; animation-duration:16s; animation-delay:3s;"></span>
+<span style="left:30%; width:20px; height:20px; animation-duration:26s; animation-delay:5s;"></span>
+<span style="left:42%; width:10px; height:10px; animation-duration:18s; animation-delay:1s;"></span>
+<span style="left:56%; width:16px; height:16px; animation-duration:24s; animation-delay:4s;"></span>
+<span style="left:70%; width:12px; height:12px; animation-duration:19s; animation-delay:2s;"></span>
+<span style="left:82%; width:22px; height:22px; animation-duration:28s; animation-delay:6s;"></span>
+<span style="left:92%; width:9px; height:9px; animation-duration:17s; animation-delay:1s;"></span>
+</div>
+
+<button id="backToTop" onclick="scrollToTop()" title="Voltar ao topo">↑</button>
+<div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
+<nav class="sidebar" id="sidebar">
+    <div class="logo">R<span>edação</span></div>
+    <div class="menu">
+        <button id="btn-home" class="active" onclick="goHome(this)"><span>🏠</span> <span>Home</span></button>
+        <button id="btn-flash" onclick="switchTab('flashcards', this)"><span>🔥</span> <span>Flashcards</span></button>
+        <button id="btn-redacoes" onclick="switchTab('redacoes', this)"><span>✍</span> <span>Redações</span></button>
+        <hr style="opacity: 0.1; width: 70%; margin: 15px auto;">
+        <button class="btn-direitos" onclick="setFiltro(this,'Direitos Humanos')"><span>🌍</span> <span>Direitos</span></button>
+        <button class="btn-educacao" onclick="setFiltro(this,'Educação')"><span>🎓</span> <span>Educação</span></button>
+        <button class="btn-tecnologia" onclick="setFiltro(this,'Tecnologia')"><span>💻</span> <span>Tecno</span></button>
+        <button class="btn-saude" onclick="setFiltro(this,'Saúde')"><span>❤️</span> <span>Saúde</span></button>
+        <button class="btn-ambiente" onclick="setFiltro(this,'Meio Ambiente')"><span>🌱</span> <span>Meio Amb.</span></button>
+    </div>
+</nav>
+
+<main class="main">
+    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <button style="background:none; border:none; font-size: 24px; cursor: pointer; color:var(--text);" onclick="toggleMenu()">☰</button>
+        <button style="padding: 10px 18px; border-radius: 14px; border:none; background:var(--card); color: var(--text); box-shadow: var(--shadow); cursor:pointer; font-weight: 600;" onclick="toggleTema()">🎨 Estilo</button>
+    </header>
+
+    <div class="user-banner" id="bannerPrincipal">
+        <div class="banner-info">
+            <div class="banner-icon" id="bannerIcon" aria-hidden="true">✦</div>
+            <div>
+            <h2 id="userName" style="font-size: 24px;">Olá, Estudante!</h2>
+            <p id="userStatus" style="opacity: 0.9; font-size: 14px;">Logue para sincronizar.</p>
+            </div>
+        </div>
+        <button id="btnLogin" onclick="handleAuth()" style="background: rgba(255,255,255,0.2); border:none; padding:10px 20px; border-radius:14px; color:white; font-weight:bold; cursor:pointer;">Login Google</button>
+    </div>
+
+    <div id="tab-home" class="section">
+        <div style="background: var(--card); padding: 25px; border-radius: 24px; box-shadow: var(--shadow); margin-bottom: 30px;">
+            <input id="titulo" placeholder="Título do Repertório">
+            <div style="display: flex; gap: 10px;">
+                <select id="categoria" style="flex:1;">
+                    <option>Direitos Humanos</option><option>Educação</option>
+                    <option>Tecnologia</option><option>Saúde</option><option>Meio Ambiente</option>
+                </select>
+                <input id="uso" placeholder="Onde usar?" style="flex:1;">
+            </div>
+            
+            <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+                <label for="input-img" style="cursor:pointer; background:var(--input); padding:10px; border-radius:12px; font-size:14px; border:1px dashed var(--primary); flex:1; text-align:center; color: var(--text-alt);">
+                    📷 Anexar Imagem de Apoio
+                </label>
+                <input type="file" id="input-img" accept="image/*" style="display:none" onchange="previewImage(this)">
+                <div id="img-preview-container" style="display:none; position:relative;">
+                    <img id="img-preview" src="" style="height:45px; width:45px; object-fit:cover; border-radius:8px;">
+                    <span onclick="removeImg()" style="position:absolute; top:-5px; right:-5px; background:red; color:white; border-radius:50%; width:18px; height:18px; font-size:12px; display:flex; align-items:center; justify-content:center; cursor:pointer;">×</span>
+                </div>
+            </div>
+
+            <div class="editor-wrapper">
+                <div class="toolbar">
+                    <button onclick="format('bold')">B</button>
+                    <button onclick="format('italic')">I</button>
+                    <button class="color-btn" style="background:#ff3b30" onclick="format('foreColor','#ff3b30')"></button>
+                    <button class="color-btn" style="background:#007aff" onclick="format('foreColor','#007aff')"></button>
+                    <button class="color-btn" style="background:#34c759" onclick="format('foreColor','#34c759')"></button>
+                    <button onclick="format('removeFormat')">❌</button>
+                </div>
+                <div id="descricao" class="editor-content" contenteditable="true" data-placeholder="Sua explicação rica aqui..."></div>
+            </div>
+
+            <button class="btn-save" id="btnSalvar" onclick="salvar()">Salvar</button>
+        </div>
+
+        <div class="search-bar">
+            <input type="text" id="inputPesquisa" placeholder="Pesquisar repertórios..." oninput="render()">
+        </div>
+
+        <div class="summary-bar">
+            <div class="total-repertorios" aria-live="polite">
+                <span id="rotuloTotalRepertorios">Total</span>
+                <strong id="totalRepertorios">0 repertórios</strong>
+            </div>
+            <div class="summary-actions">
+                <button class="progress-toggle" id="btnProgresso" type="button" aria-expanded="false" aria-controls="painelProgresso" onclick="toggleProgresso()">Ver progresso por eixo</button>
+            </div>
+        </div>
+
+        <section class="progress-panel" id="painelProgresso" aria-labelledby="tituloProgresso" hidden>
+            <h3 id="tituloProgresso">Seu repertório por eixo</h3>
+            <div class="progress-list" id="progressoEixos"></div>
+        </section>
+
+        <div class="filter-bar">
+            <span>Ordenar por:</span>
+            <select id="sortOrder" onchange="render()">
+                <option value="eixo">Agrupar por Eixo</option>
+                <option value="data">Data (Recentes)</option>
+                <option value="nome">Nome (A-Z)</option>
+                <option value="relevancia">Relevância (Domínio)</option>
+            </select>
+            <button class="favorite-filter" id="btnFiltroFavoritos" type="button" aria-pressed="false" onclick="toggleFiltroFavoritos()">★ Favoritos</button>
+        </div>
+
+        <div class="grid" id="lista"></div>
+    </div>
+
+    <div id="tab-flashcards" class="section" style="display:none;">
+        <div class="flash-meta" aria-live="polite"><span id="flashPosition">0 de 0</span></div>
+        <div class="flash-scene">
+            <div class="flash-card-inner" id="flashInner" onclick="toggleFlashFlip()">
+                <div class="flash-face" id="faceFrente">
+                    <span style="font-size: 12px; color:inherit; font-weight: bold;">Pergunta</span>
+                    <h2 id="flashTitulo" style="margin-top: 10px;">Vazio</h2>
+                    <p style="margin-top: 20px; opacity: 0.4; font-size: 13px;">Toque para virar</p>
+                </div>
+                <div class="flash-face flash-back">
+                    <span style="font-size: 12px; color:inherit; font-weight: bold;">Resposta</span>
+                    <p id="flashConteudo" style="margin-top: 15px; line-height: 1.4; font-size: 15px;"></p>
+                </div>
+            </div>
+        </div>
+        <div class="flash-actions">
+            <button type="button" onclick="embaralharFlashcards()">↻ Embaralhar</button>
+            <button type="button" id="btnModoRevisao" onclick="alternarModoRevisao()">Revisar favoritos</button>
+        </div>
+        <div style="display: flex; gap: 20px; justify-content: center; margin-top: 30px;">
+            <button onclick="prevFlash()" style="padding: 15px 30px; border-radius: 15px; border:none; background:var(--card); color: var(--text); cursor:pointer;">◀ Voltar</button>
+            <button onclick="nextFlash()" id="btnFlashNext" style="padding: 15px 30px; border-radius: 15px; border:none; background:var(--primary); color:white; cursor:pointer;">Próximo ▶</button>
+        </div>
+    </div>
+
+    <div id="tab-redacoes" class="section" style="display:none;">
+        <div class="redacao-library" id="bibliotecaRedacoes">
+            <div class="redacao-library-header">
+                <div>
+                    <h2>Minhas redações</h2>
+                    <p>Seus textos ficam salvos neste dispositivo.</p>
+                </div>
+                <button class="btn-nova-redacao" type="button" onclick="abrirNovaRedacao()">+ Nova redação</button>
+            </div>
+            <section class="grade-stats" aria-labelledby="tituloEvolucaoNotas">
+                <h3 id="tituloEvolucaoNotas">Seu desempenho nas redações</h3>
+                <div id="estatisticasNotas"></div>
+            </section>
+            <div class="redacoes-grid" id="listaRedacoes"></div>
+        </div>
+
+        <div class="redacao-workspace" id="editorRedacao" style="display:none;">
+            <div class="redacao-topbar">
+                <input id="redacaoTitulo" class="redacao-title" type="text" placeholder="Título da redação" oninput="atualizarRedacao()">
+                <span class="redacao-stats" id="redacaoContagem">0 palavras</span>
+            </div>
+            <div class="redacao-details">
+                <select id="redacaoBanca" aria-label="Banca avaliadora" onchange="atualizarRedacao()">
+                    <option value="">Banca avaliadora</option>
+                    <option value="ENEM">ENEM</option>
+                    <option value="UNESP">UNESP</option>
+                    <option value="FUVEST">FUVEST</option>
+                    <option value="UNICAMP">UNICAMP</option>
+                </select>
+                <input id="redacaoNota" type="number" min="0" step="0.1" placeholder="Sua nota" oninput="atualizarRedacao()">
+                <input id="redacaoValorMaximo" type="number" min="1" step="0.1" value="1000" placeholder="Valor máximo" oninput="atualizarRedacao()">
+            </div>
+            <div class="redacao-toolbar" aria-label="Ferramentas de edição">
+                <button type="button" title="Desfazer" onmousedown="event.preventDefault()" onclick="formatarRedacao('undo')">↶</button>
+                <button type="button" title="Refazer" onmousedown="event.preventDefault()" onclick="formatarRedacao('redo')">↷</button>
+                <span class="toolbar-divider"></span>
+                <button type="button" title="Negrito" onmousedown="event.preventDefault()" onclick="formatarRedacao('bold')"><b>B</b></button>
+                <button type="button" title="Itálico" onmousedown="event.preventDefault()" onclick="formatarRedacao('italic')"><i>I</i></button>
+                <button type="button" title="Sublinhado" onmousedown="event.preventDefault()" onclick="formatarRedacao('underline')"><u>U</u></button>
+                <div class="highlight-picker" title="Cor do marca-texto">
+                    <input id="corMarcaTexto" type="color" value="#fff176" aria-label="Cor do marca-texto">
+                    <button type="button" title="Destacar texto" onmousedown="event.preventDefault()" onclick="aplicarMarcaTexto()">▰</button>
+                </div>
+                <button type="button" title="Título" onmousedown="event.preventDefault()" onclick="formatarRedacao('formatBlock', 'h2')">H2</button>
+                <button type="button" title="Lista" onmousedown="event.preventDefault()" onclick="formatarRedacao('insertUnorderedList')">• Lista</button>
+                <span class="toolbar-divider"></span>
+                <button type="button" title="Alinhar à esquerda" onmousedown="event.preventDefault()" onclick="formatarRedacao('justifyLeft')">≡</button>
+                <button type="button" title="Centralizar" onmousedown="event.preventDefault()" onclick="formatarRedacao('justifyCenter')">≣</button>
+                <div class="zoom-control">
+                    <button type="button" title="Diminuir zoom" onclick="alterarZoomRedacao(-10)">−</button>
+                    <input id="zoomRedacao" type="range" min="70" max="130" value="100" aria-label="Zoom do documento" oninput="definirZoomRedacao(this.value)">
+                    <button type="button" title="Aumentar zoom" onclick="alterarZoomRedacao(10)">+</button>
+                    <span id="zoomRedacaoValor">100%</span>
+                </div>
+            </div>
+            <div class="redacao-stage">
+                <article id="redacaoEditor" class="redacao-page" contenteditable="true" spellcheck="true" data-placeholder="Comece sua redação aqui..." oninput="atualizarRedacao()"></article>
+                <aside class="mapa-mental" aria-label="Mapa mental da redação">
+                    <div class="mapa-mental-header">
+                        <h3>Mapa mental</h3>
+                        <button type="button" onclick="adicionarNoMapa()">+ Nota</button>
+                    </div>
+                    <p>Arraste as notas. Puxe a bolinha de uma nota até outra para criar uma seta.</p>
+                    <div class="mapa-canvas" id="mapaCanvas">
+                        <svg class="mapa-linhas" id="mapaLinhas" aria-hidden="true"></svg>
+                        <div id="mapaNodes"></div>
+                    </div>
+                </aside>
+            </div>
+            <textarea id="redacaoNotas" class="redacao-notas" placeholder="Anotações, comentários da correção ou pontos para revisar..." oninput="atualizarRedacao()"></textarea>
+            <div class="redacao-footer">
+                <button class="btn-voltar-redacoes" type="button" onclick="mostrarBibliotecaRedacoes()">← Voltar para redações</button>
+                <div style="display:flex; align-items:center; gap:14px;">
+                    <label class="spellcheck-toggle"><input id="modoSemCorrecao" type="checkbox" onchange="alternarCorrecaoCaracteres()"> Sem correção de caracteres</label>
+                    <span id="redacaoSalvamento">Ainda não salva</span>
+                    <button class="btn-salvar-redacao" type="button" onclick="salvarRedacao()">Salvar redação</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="modal" id="modal" onclick="fecharModal(event)">
+    <div class="modal-content" id="modalContent" onclick="event.stopPropagation()">
+        <div class="close-btn" onclick="fecharModal()">×</div>
+        
+        <div id="display-img-modal" style="display:none; margin-bottom:15px; text-align:center;">
+            <img id="img-modal" src="" style="max-width:100%; border-radius:15px; max-height:200px; object-fit:contain; box-shadow: var(--shadow);">
+            <button onclick="removeImgEdit()" style="display:block; margin: 10px auto 0; padding: 6px 15px; background: transparent; color: #ff3b30; border: 1px solid #ff3b30; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold;">Remover Imagem</button>
+        </div>
+
+        <div style="margin-bottom: 25px;">
+            <label for="input-img-edit" style="cursor:pointer; display:block; padding:10px; border-radius:12px; font-size:14px; border:1px dashed var(--primary); text-align:center; color: var(--text-alt);">
+                Adicionar / Alterar Imagem
+            </label>
+            <input type="file" id="input-img-edit" accept="image/*" style="display:none" onchange="previewImageEdit(this)">
+        </div>
+
+        <div class="status-dots" id="modalDots" style="justify-content: center; margin-bottom: 25px; display: flex; gap: 8px;"></div>
+        <input id="editTitulo" placeholder="Título">
+        <select id="editCat"><option>Direitos Humanos</option><option>Educação</option><option>Tecnologia</option><option>Saúde</option><option>Meio Ambiente</option></select>
+        <input id="editUso" placeholder="Uso">
+        
+        <div class="editor-wrapper">
+            <div class="toolbar">
+                <button onclick="format('bold')">B</button>
+                <button onclick="format('italic')">I</button>
+                <button class="color-btn" style="background:#ff3b30" onclick="format('foreColor','#ff3b30')"></button>
+                <button class="color-btn" style="background:#007aff" onclick="format('foreColor','#007aff')"></button>
+                <button class="color-btn" style="background:#34c759" onclick="format('foreColor','#34c759')"></button>
+                <button onclick="format('removeFormat')">❌</button>
+            </div>
+            <div id="editDesc" class="editor-content" contenteditable="true"></div>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-save" id="btnConfirmar" onclick="atualizar()" style="flex: 2;">Confirmar</button>
+            <button id="btnDeletar" style="flex: 1; margin-top: 25px; border-radius: 18px; border:none; background: #ff3b301a; color:#ff3b30; cursor:pointer; font-size: 20px;">🗑️</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const firebaseConfig = { apiKey: "AIzaSyBxm6ENo7qiMKPCLwsCBHKTH37Wov5CNLI", authDomain: "redacaorep.firebaseapp.com", projectId: "redacaorep", storageBucket: "redacaorep.firebasestorage.app", messagingSenderId: "959438351648", appId: "1:959438351648:web:e72096f67a7ea37257bb45", measurementId: "G-WCSMVK7V02" };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let dados = [], filtroAtual = "Todos", apenasFavoritos = false, flashIndex = 0, indexAtual = null, imagemBase64 = "", imagemEditBase64 = "", flashDeck = [], modoRevisao = false, redacoes = [], redacaoAtualId = null, mapaMental = { nodes: [], edges: [] };
+
+    function format(cmd, val) { document.execCommand(cmd, false, val); }
+
+    function contarPalavrasRedacao(conteudo = document.getElementById('redacaoEditor').innerText) {
+        const texto = conteudo.trim();
+        return texto ? texto.split(/\s+/).length : 0;
+    }
+
+    function atualizarRedacao(mudou = true) {
+        const quantidade = contarPalavrasRedacao();
+        document.getElementById('redacaoContagem').textContent = `${quantidade} ${quantidade === 1 ? 'palavra' : 'palavras'}`;
+        if (mudou) document.getElementById('redacaoSalvamento').textContent = 'Alterações não salvas';
+    }
+
+    function carregarRedacoes() {
+        redacoes = JSON.parse(localStorage.getItem('redacoesSalvas') || '[]');
+        const rascunhoAntigo = JSON.parse(localStorage.getItem('rascunhoRedacao') || 'null');
+        if (!redacoes.length && rascunhoAntigo && (rascunhoAntigo.titulo || rascunhoAntigo.conteudo)) {
+            redacoes = [{ id: String(Date.now()), titulo: rascunhoAntigo.titulo || 'Redação sem título', conteudo: rascunhoAntigo.conteudo || '', atualizadaEm: new Date().toISOString() }];
+            localStorage.setItem('redacoesSalvas', JSON.stringify(redacoes));
+            localStorage.removeItem('rascunhoRedacao');
+        }
+        renderizarListaRedacoes();
+    }
+
+    function renderizarListaRedacoes() {
+        const lista = document.getElementById('listaRedacoes');
+        renderizarEstatisticasNotas();
+        if (!redacoes.length) {
+            lista.innerHTML = '<div class="sem-redacoes">Nenhuma redação salva ainda.<br>Crie a primeira para começar.</div>';
+            return;
+        }
+        lista.innerHTML = [...redacoes].sort((a, b) => new Date(b.atualizadaEm) - new Date(a.atualizadaEm)).map(redacao => {
+            const palavras = contarPalavrasRedacao((redacao.conteudo || '').replace(/<[^>]*>/g, ' '));
+            const data = new Date(redacao.atualizadaEm).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+            const possuiNota = redacao.nota !== null && redacao.nota !== '' && Number.isFinite(Number(redacao.nota)) && Number(redacao.valorMaximo) > 0;
+            const nota = possuiNota ? `<span class="redacao-grade">${redacao.banca || 'Avaliação'} · ${redacao.nota} / ${redacao.valorMaximo}</span>` : '';
+            return `<article class="redacao-item"><h3>${redacao.titulo || 'Redação sem título'}</h3><p>${palavras} ${palavras === 1 ? 'palavra' : 'palavras'} · Atualizada em ${data}</p>${nota}<div class="redacao-item-actions"><button type="button" onclick="abrirRedacao('${redacao.id}')">Abrir</button><button class="btn-excluir-redacao" type="button" title="Excluir redação" onclick="excluirRedacao('${redacao.id}')">×</button></div></article>`;
+        }).join('');
+    }
+
+    function mostrarBibliotecaRedacoes() {
+        document.getElementById('editorRedacao').style.display = 'none';
+        document.getElementById('bibliotecaRedacoes').style.display = 'block';
+        renderizarListaRedacoes();
+    }
+
+    function abrirNovaRedacao() {
+        redacaoAtualId = null;
+        document.getElementById('redacaoTitulo').value = '';
+        document.getElementById('redacaoEditor').innerHTML = '';
+        document.getElementById('redacaoBanca').value = '';
+        document.getElementById('redacaoNota').value = '';
+        document.getElementById('redacaoValorMaximo').value = '1000';
+        document.getElementById('redacaoNotas').value = '';
+        document.getElementById('modoSemCorrecao').checked = false;
+        aplicarModoCorrecao(false);
+        mapaMental = { nodes: [], edges: [] };
+        renderizarMapaMental();
+        atualizarRedacao(false);
+        document.getElementById('redacaoSalvamento').textContent = 'Ainda não salva';
+        document.getElementById('bibliotecaRedacoes').style.display = 'none';
+        document.getElementById('editorRedacao').style.display = 'block';
+        document.getElementById('redacaoEditor').focus();
+    }
+
+    function abrirRedacao(id) {
+        const redacao = redacoes.find(item => item.id === id);
+        if (!redacao) return;
+        redacaoAtualId = id;
+        document.getElementById('redacaoTitulo').value = redacao.titulo || '';
+        document.getElementById('redacaoEditor').innerHTML = redacao.conteudo || '';
+        document.getElementById('redacaoBanca').value = redacao.banca || '';
+        document.getElementById('redacaoNota').value = redacao.nota ?? '';
+        document.getElementById('redacaoValorMaximo').value = redacao.valorMaximo ?? '1000';
+        document.getElementById('redacaoNotas').value = redacao.notas || '';
+        document.getElementById('modoSemCorrecao').checked = Boolean(redacao.semCorrecao);
+        aplicarModoCorrecao(Boolean(redacao.semCorrecao));
+        mapaMental = redacao.mapaMental ? JSON.parse(JSON.stringify(redacao.mapaMental)) : { nodes: [], edges: [] };
+        renderizarMapaMental();
+        atualizarRedacao(false);
+        document.getElementById('redacaoSalvamento').textContent = `Salva em ${new Date(redacao.atualizadaEm).toLocaleDateString('pt-BR')}`;
+        document.getElementById('bibliotecaRedacoes').style.display = 'none';
+        document.getElementById('editorRedacao').style.display = 'block';
+    }
+
+    function salvarRedacao() {
+        const agora = new Date().toISOString();
+        const titulo = document.getElementById('redacaoTitulo').value.trim() || 'Redação sem título';
+        const conteudo = document.getElementById('redacaoEditor').innerHTML;
+        const valorNota = document.getElementById('redacaoNota').value;
+        const valorMaximo = document.getElementById('redacaoValorMaximo').value;
+        const detalhes = {
+            banca: document.getElementById('redacaoBanca').value,
+            nota: valorNota === '' ? null : Number(valorNota),
+            valorMaximo: valorMaximo === '' ? null : Number(valorMaximo),
+            notas: document.getElementById('redacaoNotas').value,
+            semCorrecao: document.getElementById('modoSemCorrecao').checked,
+            mapaMental: JSON.parse(JSON.stringify(mapaMental))
+        };
+        if (redacaoAtualId) {
+            const indice = redacoes.findIndex(item => item.id === redacaoAtualId);
+            if (indice !== -1) redacoes[indice] = { ...redacoes[indice], titulo, conteudo, ...detalhes, atualizadaEm: agora };
+        } else {
+            redacaoAtualId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+            redacoes.push({ id: redacaoAtualId, titulo, conteudo, ...detalhes, atualizadaEm: agora });
+        }
+        localStorage.setItem('redacoesSalvas', JSON.stringify(redacoes));
+        mostrarBibliotecaRedacoes();
+    }
+
+    function excluirRedacao(id) {
+        if (!confirm('Excluir esta redação salva?')) return;
+        redacoes = redacoes.filter(item => item.id !== id);
+        localStorage.setItem('redacoesSalvas', JSON.stringify(redacoes));
+        renderizarListaRedacoes();
+    }
+
+    function aplicarModoCorrecao(semCorrecao) {
+        const editor = document.getElementById('redacaoEditor');
+        editor.spellcheck = !semCorrecao;
+        editor.setAttribute('autocorrect', semCorrecao ? 'off' : 'on');
+        editor.setAttribute('autocapitalize', semCorrecao ? 'off' : 'sentences');
+    }
+
+    function alternarCorrecaoCaracteres() {
+        aplicarModoCorrecao(document.getElementById('modoSemCorrecao').checked);
+        atualizarRedacao();
+    }
+
+    function aplicarMarcaTexto() {
+        document.execCommand('hiliteColor', false, document.getElementById('corMarcaTexto').value);
+        atualizarRedacao();
+    }
+
+    function escaparHtml(texto) {
+        return String(texto).replace(/[&<>"']/g, caractere => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[caractere]);
+    }
+
+    function adicionarNoMapa() {
+        const indice = mapaMental.nodes.length;
+        mapaMental.nodes.push({ id: `nota-${Date.now()}-${indice}`, texto: 'Nova ideia', x: 16 + (indice * 17) % 105, y: 18 + (indice * 47) % 300 });
+        renderizarMapaMental();
+        atualizarRedacao();
+    }
+
+    function renderizarMapaMental() {
+        const area = document.getElementById('mapaNodes');
+        if (!area) return;
+        if (!mapaMental.nodes.length) {
+            area.innerHTML = '<div class="mapa-vazio">Adicione notas para organizar teses, argumentos e repertórios.</div>';
+        } else {
+            area.innerHTML = mapaMental.nodes.map(nota => `<div class="mapa-node" data-id="${nota.id}" style="left:${nota.x}px; top:${nota.y}px;" onpointerdown="iniciarArrastoMapa(event, '${nota.id}')"><div contenteditable="true" onpointerdown="event.stopPropagation()" oninput="editarNoMapa('${nota.id}', this.innerText)">${escaparHtml(nota.texto)}</div><button class="mapa-remover" type="button" title="Remover nota" onpointerdown="event.stopPropagation()" onclick="removerNoMapa('${nota.id}')">×</button><button class="mapa-handle" type="button" title="Arraste para criar uma seta" onpointerdown="iniciarConexaoMapa(event, '${nota.id}')">↗</button></div>`).join('');
+        }
+        requestAnimationFrame(() => atualizarLinhasMapa());
+    }
+
+    function editarNoMapa(id, texto) {
+        const nota = mapaMental.nodes.find(item => item.id === id);
+        if (nota) nota.texto = texto;
+        atualizarRedacao();
+    }
+
+    function removerNoMapa(id) {
+        mapaMental.nodes = mapaMental.nodes.filter(item => item.id !== id);
+        mapaMental.edges = mapaMental.edges.filter(linha => linha.de !== id && linha.para !== id);
+        renderizarMapaMental();
+        atualizarRedacao();
+    }
+
+    function iniciarArrastoMapa(event, id) {
+        if (event.target.closest('[contenteditable], button')) return;
+        event.preventDefault();
+        const nota = mapaMental.nodes.find(item => item.id === id);
+        if (!nota) return;
+        const area = document.getElementById('mapaCanvas').getBoundingClientRect();
+        window.mapaInteracao = { tipo: 'arrasto', id, offsetX: event.clientX - area.left - nota.x, offsetY: event.clientY - area.top - nota.y };
+        document.addEventListener('pointermove', moverInteracaoMapa);
+        document.addEventListener('pointerup', finalizarInteracaoMapa, { once: true });
+    }
+
+    function iniciarConexaoMapa(event, id) {
+        event.preventDefault();
+        event.stopPropagation();
+        window.mapaInteracao = { tipo: 'conexao', origem: id };
+        document.addEventListener('pointermove', moverInteracaoMapa);
+        document.addEventListener('pointerup', finalizarInteracaoMapa, { once: true });
+    }
+
+    function moverInteracaoMapa(event) {
+        if (!window.mapaInteracao) return;
+        const area = document.getElementById('mapaCanvas').getBoundingClientRect();
+        if (window.mapaInteracao.tipo === 'arrasto') {
+            const nota = mapaMental.nodes.find(item => item.id === window.mapaInteracao.id);
+            if (!nota) return;
+            nota.x = Math.max(0, Math.min(area.width - 132, event.clientX - area.left - window.mapaInteracao.offsetX));
+            nota.y = Math.max(0, Math.min(area.height - 60, event.clientY - area.top - window.mapaInteracao.offsetY));
+            const elemento = document.querySelector(`.mapa-node[data-id="${nota.id}"]`);
+            if (elemento) { elemento.style.left = `${nota.x}px`; elemento.style.top = `${nota.y}px`; }
+            atualizarLinhasMapa();
+        } else {
+            atualizarLinhasMapa({ x: event.clientX - area.left, y: event.clientY - area.top });
+        }
+    }
+
+    function finalizarInteracaoMapa(event) {
+        document.removeEventListener('pointermove', moverInteracaoMapa);
+        if (window.mapaInteracao?.tipo === 'conexao') {
+            const destino = event.target.closest?.('.mapa-node')?.dataset.id;
+            const origem = window.mapaInteracao.origem;
+            if (destino && destino !== origem && !mapaMental.edges.some(linha => linha.de === origem && linha.para === destino)) {
+                mapaMental.edges.push({ de: origem, para: destino });
+                atualizarRedacao();
+            }
+        }
+        window.mapaInteracao = null;
+        atualizarLinhasMapa();
+    }
+
+    function atualizarLinhasMapa(linhaTemporaria = null) {
+        const area = document.getElementById('mapaCanvas');
+        const svg = document.getElementById('mapaLinhas');
+        if (!area || !svg) return;
+        const largura = area.clientWidth;
+        const altura = area.clientHeight;
+        svg.setAttribute('viewBox', `0 0 ${largura} ${altura}`);
+        const porId = Object.fromEntries(mapaMental.nodes.map(nota => [nota.id, nota]));
+        const centro = nota => ({ x: nota.x + 66, y: nota.y + 30 });
+        const linhas = mapaMental.edges.map(linha => {
+            const inicio = porId[linha.de], fim = porId[linha.para];
+            if (!inicio || !fim) return '';
+            const a = centro(inicio), b = centro(fim);
+            return `<path d="M ${a.x} ${a.y} L ${b.x} ${b.y}" stroke="var(--primary)" stroke-width="2" fill="none" marker-end="url(#setaMapa)"/>`;
+        }).join('');
+        let temporaria = '';
+        if (linhaTemporaria && window.mapaInteracao?.origem) {
+            const inicio = porId[window.mapaInteracao.origem];
+            if (inicio) { const a = centro(inicio); temporaria = `<path d="M ${a.x} ${a.y} L ${linhaTemporaria.x} ${linhaTemporaria.y}" stroke="var(--primary)" stroke-width="2" stroke-dasharray="4 4" fill="none"/>`; }
+        }
+        svg.innerHTML = `<defs><marker id="setaMapa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--primary)"/></marker></defs>${linhas}${temporaria}`;
+    }
+
+    function renderizarEstatisticasNotas() {
+        const destino = document.getElementById('estatisticasNotas');
+        if (!destino) return;
+        const avaliadas = redacoes.filter(redacao => redacao.nota !== null && redacao.nota !== '' && Number.isFinite(Number(redacao.nota)) && Number(redacao.valorMaximo) > 0).sort((a, b) => new Date(a.atualizadaEm) - new Date(b.atualizadaEm));
+        if (!avaliadas.length) {
+            destino.innerHTML = '<p class="grade-empty">Salve uma redação com nota para acompanhar sua evolução.</p>';
+            return;
+        }
+        const percentuais = avaliadas.map(redacao => (Number(redacao.nota) / Number(redacao.valorMaximo)) * 100);
+        const ultima = percentuais.at(-1);
+        const anterior = percentuais.at(-2);
+        const media = percentuais.reduce((total, nota) => total + nota, 0) / percentuais.length;
+        const evolucao = anterior === undefined ? 'Primeira nota' : `${ultima >= anterior ? '+' : ''}${(ultima - anterior).toFixed(1)} p.p.`;
+        const ultimasNotas = percentuais.slice(-6);
+        destino.innerHTML = `<div class="grade-summary"><div><span>Média geral</span><strong>${media.toFixed(1)}%</strong></div><div><span>Última nota</span><strong>${ultima.toFixed(1)}%</strong></div><div><span>Evolução</span><strong>${evolucao}</strong></div></div><div class="grade-bars" aria-label="Histórico das últimas notas">${ultimasNotas.map(percentual => `<div class="grade-bar" style="height:${Math.max(8, Math.min(100, percentual))}%" title="${percentual.toFixed(1)}%"></div>`).join('')}</div>`;
+    }
+
+    function formatarRedacao(comando, valor = null) {
+        document.execCommand(comando, false, valor);
+        atualizarRedacao();
+    }
+
+    function definirZoomRedacao(valor) {
+        const zoom = Number(valor);
+        document.getElementById('redacaoEditor').style.transform = `scale(${zoom / 100})`;
+        document.getElementById('zoomRedacaoValor').textContent = `${zoom}%`;
+    }
+
+    function alterarZoomRedacao(delta) {
+        const controle = document.getElementById('zoomRedacao');
+        const novoValor = Math.min(130, Math.max(70, Number(controle.value) + delta));
+        controle.value = novoValor;
+        definirZoomRedacao(novoValor);
+    }
+
+
+    function getCorEixo(cat) {
+        const cores = { "Direitos Humanos": "var(--cor-direitos)", "Educação": "var(--cor-educacao)", "Tecnologia": "var(--cor-tecnologia)", "Saúde": "var(--cor-saude)", "Meio Ambiente": "var(--cor-meio-ambiente)" };
+        return cores[cat] || "var(--primary)";
+    }
+
+    function aplicarCorInterface(cat) {
+        const cor = getCorEixo(cat);
+        document.getElementById('bannerPrincipal').style.background = cor;
+        document.getElementById('btnSalvar').style.background = cor;
+        document.getElementById('btnFlashNext').style.background = cor;
+    }
+
+    function atualizarBannerEixo() {
+        const textos = {
+            "Direitos Humanos": { icone: "◉", titulo: "Direitos Humanos", descricao: "Argumentos sobre cidadania, igualdade e dignidade." },
+            "Educação": { icone: "◈", titulo: "Educação", descricao: "Ideias para transformar o acesso ao conhecimento." },
+            "Tecnologia": { icone: "⌘", titulo: "Tecnologia", descricao: "Referências para debater inovação e seus impactos." },
+            "Saúde": { icone: "✚", titulo: "Saúde", descricao: "Repertórios sobre bem-estar, prevenção e cuidado coletivo." },
+            "Meio Ambiente": { icone: "♧", titulo: "Meio Ambiente", descricao: "Argumentos para uma sociedade mais sustentável." }
+        };
+        const banner = document.getElementById('bannerPrincipal');
+        const titulo = document.getElementById('userName');
+        const descricao = document.getElementById('userStatus');
+        const icone = document.getElementById('bannerIcon');
+        const nome = auth.currentUser?.displayName?.split(' ')[0] || 'Estudante';
+        const eixo = textos[filtroAtual];
+
+        if (eixo) {
+            titulo.textContent = eixo.titulo;
+            descricao.textContent = eixo.descricao;
+            icone.textContent = eixo.icone;
+            banner.setAttribute('aria-label', `Eixo ${eixo.titulo}`);
+        } else {
+            titulo.textContent = `Olá, ${nome}!`;
+            descricao.textContent = auth.currentUser ? 'Seu espaço para organizar repertórios de redação.' : 'Entre para sincronizar seus repertórios.';
+            icone.textContent = '✦';
+            banner.setAttribute('aria-label', 'Página inicial');
+        }
+    }
+
+    function previewImage(input) {
+        const file = input.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagemBase64 = e.target.result;
+                document.getElementById('img-preview').src = imagemBase64;
+                document.getElementById('img-preview-container').style.display = "block";
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function removeImg() {
+        imagemBase64 = "";
+        document.getElementById('input-img').value = "";
+        document.getElementById('img-preview-container').style.display = "none";
+    }
+
+    function previewImageEdit(input) {
+        const file = input.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagemEditBase64 = e.target.result;
+                document.getElementById('img-modal').src = imagemEditBase64;
+                document.getElementById('display-img-modal').style.display = "block";
+            }
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function removeImgEdit() {
+        imagemEditBase64 = "";
+        document.getElementById('input-img-edit').value = "";
+        document.getElementById('display-img-modal').style.display = "none";
+    }
+
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            document.getElementById("btnLogin").innerText = "Sair";
+            atualizarBannerEixo();
+            db.collection("repertorios").where("userId", "==", user.uid).onSnapshot(snap => {
+                dados = snap.docs.map(doc => {
+                    const data = doc.data();
+                    let dataCriacao;
+                    if (data.createdAt && data.createdAt.toDate) {
+                        dataCriacao = data.createdAt.toDate();
+                    } else if (data.createdAt) {
+                        dataCriacao = new Date(data.createdAt);
+                    } else {
+                        dataCriacao = new Date();
+                    }
+                    return { id: doc.id, ...data, createdAt: dataCriacao };
+                });
+                render();
+            });
+        } else {
+            document.getElementById("btnLogin").innerText = "Login Google";
+            atualizarBannerEixo();
+            const localReps = JSON.parse(localStorage.getItem("reps")) || [];
+            dados = localReps.map(r => ({...r, createdAt: new Date(r.createdAt)}));
+            render();
+        }
+    });
+
+    async function handleAuth() { if (auth.currentUser) auth.signOut(); else await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+
+    function render() {
+        const lista = document.getElementById("lista");
+        const order = document.getElementById("sortOrder").value;
+        const termoPesquisa = document.getElementById("inputPesquisa").value.toLowerCase();
+        const quantidadeNoEixo = filtroAtual === "Todos"
+            ? dados.length
+            : dados.filter(r => r.categoria === filtroAtual).length;
+        const rotuloTotal = document.getElementById("rotuloTotalRepertorios");
+        const totalRepertorios = document.getElementById("totalRepertorios");
+        rotuloTotal.textContent = filtroAtual === "Todos" ? "Total" : filtroAtual;
+        totalRepertorios.textContent = `${quantidadeNoEixo} ${quantidadeNoEixo === 1 ? "repertório" : "repertórios"}`;
+        const btnFiltroFavoritos = document.getElementById('btnFiltroFavoritos');
+        btnFiltroFavoritos.classList.toggle('active', apenasFavoritos);
+        btnFiltroFavoritos.setAttribute('aria-pressed', String(apenasFavoritos));
+        renderizarProgressoEixos();
+        lista.innerHTML = "";
+        
+        let exibicao = dados.filter(r => {
+            const matchCategoria = filtroAtual === "Todos" || r.categoria === filtroAtual;
+            const matchFavorito = !apenasFavoritos || r.favorito;
+            const textoBusca = (r.titulo + (r.uso||'') + r.descricao.replace(/<[^>]*>/g, '')).toLowerCase();
+            return matchCategoria && matchFavorito && textoBusca.includes(termoPesquisa);
+        });
+
+        if (order === "nome") exibicao.sort((a,b) => a.titulo.localeCompare(b.titulo));
+        else if (order === "relevancia") { const peso = { "forte": 3, "medio": 2, "fraco": 1 }; exibicao.sort((a,b) => peso[b.status] - peso[a.status]); }
+        else if (order === "data") exibicao.sort((a,b) => b.createdAt.getTime() - a.createdAt.getTime());
+        else if (order === "eixo") {
+            ["Direitos Humanos", "Educação", "Tecnologia", "Saúde", "Meio Ambiente"].forEach(eixo => {
+                const itensEixo = exibicao.filter(i => i.categoria === eixo);
+                if (itensEixo.length > 0) {
+                    lista.innerHTML += `<div class="group-title" style="color:${getCorEixo(eixo)}">${eixo}</div>`;
+                    itensEixo.sort((a,b) => b.createdAt.getTime() - a.createdAt.getTime());
+                    itensEixo.forEach(r => lista.innerHTML += cardHTML(r));
+                }
+            });
+            updateFlashUI(); return;
+        }
+        exibicao.forEach(r => lista.innerHTML += cardHTML(r));
+        updateFlashUI();
+    }
+
+    function cardHTML(r) {
+        const i = dados.indexOf(r);
+        const cor = getCorEixo(r.categoria);
+        return `<div class="card" style="border-left-color: ${cor}" onclick="abrirModal(${i})"><button class="favorite-btn ${r.favorito ? 'active' : ''}" onclick="toggleFavorito(event, ${i})" aria-label="${r.favorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}" title="${r.favorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}">★</button><div class="status-dots" style="display: flex; gap: 8px; margin-bottom: 12px;"><div class="dot red ${r.status==='fraco'?'active':''}" onclick="updateStatus(event, ${i}, 'fraco')"></div><div class="dot yellow ${r.status==='medio'?'active':''}" onclick="updateStatus(event, ${i}, 'medio')"></div><div class="dot green ${r.status==='forte'?'active':''}" onclick="updateStatus(event, ${i}, 'forte')"></div></div><h3>${r.titulo}</h3><p style="color:${cor}; font-size:13px; font-weight:bold; margin-top:5px;">${r.uso || 'Geral'}</p></div>`;
+    }
+
+    function renderizarProgressoEixos() {
+        const eixos = ["Direitos Humanos", "Educação", "Tecnologia", "Saúde", "Meio Ambiente"];
+        const maiorQuantidade = Math.max(...eixos.map(eixo => dados.filter(r => r.categoria === eixo).length), 1);
+        document.getElementById('progressoEixos').innerHTML = eixos.map(eixo => {
+            const quantidade = dados.filter(r => r.categoria === eixo).length;
+            const porcentagem = (quantidade / maiorQuantidade) * 100;
+            return `<div class="progress-row"><span>${eixo}</span><div class="progress-track"><div class="progress-fill" style="width:${porcentagem}%; background:${getCorEixo(eixo)};"></div></div><span class="progress-count">${quantidade}</span></div>`;
+        }).join('');
+    }
+
+    function toggleProgresso() {
+        const painel = document.getElementById('painelProgresso');
+        const botao = document.getElementById('btnProgresso');
+        const estaOculto = painel.hidden;
+        painel.hidden = !estaOculto;
+        botao.setAttribute('aria-expanded', String(estaOculto));
+        botao.textContent = estaOculto ? 'Ocultar progresso por eixo' : 'Ver progresso por eixo';
+    }
+
+    function toggleFiltroFavoritos() {
+        apenasFavoritos = !apenasFavoritos;
+        render();
+    }
+
+    async function toggleFavorito(event, i) {
+        event.stopPropagation();
+        const favoritoAnterior = Boolean(dados[i].favorito);
+        dados[i].favorito = !favoritoAnterior;
+        try {
+            if (auth.currentUser && dados[i].id) {
+                await db.collection("repertorios").doc(dados[i].id).update({ favorito: dados[i].favorito });
+            } else {
+                localStorage.setItem("reps", JSON.stringify(dados));
+            }
+            render();
+        } catch (erro) {
+            dados[i].favorito = favoritoAnterior;
+            alert('Não foi possível atualizar o favorito. Tente novamente.');
+            render();
+        }
+    }
+
+    function abrirModal(i) {
+        indexAtual = i; const r = dados[i]; const cor = getCorEixo(r.categoria);
+        imagemEditBase64 = r.imagem || "";
+        document.getElementById('input-img-edit').value = "";
+        
+        const displayImg = document.getElementById('display-img-modal');
+        if(r.imagem) {
+            displayImg.style.display = "block";
+            document.getElementById('img-modal').src = r.imagem;
+        } else {
+            displayImg.style.display = "none";
+        }
+
+        document.getElementById('modalContent').style.borderTopColor = cor;
+        document.getElementById('btnConfirmar').style.background = cor;
+        document.getElementById('editTitulo').value = r.titulo;
+        document.getElementById('editUso').value = r.uso || "";
+        document.getElementById('editDesc').innerHTML = r.descricao;
+        document.getElementById('editCat').value = r.categoria || "Direitos Humanos";
+        document.getElementById('modalDots').innerHTML = `<div class="dot red ${r.status==='fraco'?'active':''}" onclick="updateStatusModal('fraco')"></div><div class="dot yellow ${r.status==='medio'?'active':''}" onclick="updateStatusModal('medio')"></div><div class="dot green ${r.status==='forte'?'active':''}" onclick="updateStatusModal('forte')"></div>`;
+        document.getElementById('btnDeletar').onclick = () => deletar(i);
+        document.getElementById('modal').style.display = "flex";
+        setTimeout(() => { document.getElementById('modalContent').style.transform = "scale(1)"; }, 10);
+    }
+
+    function obterFlashcardsAtuais() {
+        return modoRevisao ? dados.filter(r => r.favorito) : dados;
+    }
+
+    function sincronizarDeckFlash() {
+        const flashcardsAtuais = obterFlashcardsAtuais();
+        const deckAindaValido = flashDeck.length === flashcardsAtuais.length && flashDeck.every(r => flashcardsAtuais.includes(r));
+        if (!deckAindaValido) {
+            flashDeck = [...flashcardsAtuais];
+            flashIndex = 0;
+        }
+    }
+
+    function updateFlashUI() {
+        sincronizarDeckFlash();
+        const posicao = document.getElementById('flashPosition');
+        const botaoModo = document.getElementById('btnModoRevisao');
+        botaoModo.classList.toggle('active', modoRevisao);
+        botaoModo.textContent = modoRevisao ? 'Revisando favoritos' : 'Revisar favoritos';
+
+        if (!flashDeck.length) {
+            document.getElementById('flashTitulo').innerText = modoRevisao ? 'Nenhum favorito ainda' : 'Nenhum repertório ainda';
+            document.getElementById('flashConteudo').innerText = modoRevisao ? 'Favorite um repertório para estudá-lo neste modo.' : 'Cadastre um repertório para começar a revisar.';
+            document.getElementById('flashInner').classList.remove('is-flipped');
+            posicao.textContent = '0 de 0';
+            return;
+        }
+
+        if (flashIndex >= flashDeck.length) flashIndex = 0;
+        const r = flashDeck[flashIndex];
+        const cor = getCorEixo(r.categoria);
+        document.getElementById('flashTitulo').innerText = r.titulo;
+        document.getElementById('flashConteudo').innerText = r.descricao.replace(/<[^>]*>/g, '').substring(0, 150) + "...";
+        document.getElementById('faceFrente').style.borderColor = cor;
+        document.getElementById('faceFrente').style.color = cor;
+        posicao.textContent = `${flashIndex + 1} de ${flashDeck.length}`;
+    }
+
+    function toggleFlashFlip() {
+        if (flashDeck.length) document.getElementById('flashInner').classList.toggle('is-flipped');
+    }
+    function nextFlash() {
+        if (!flashDeck.length) return;
+        document.getElementById('flashInner').classList.remove('is-flipped');
+        setTimeout(() => { flashIndex = (flashIndex + 1) % flashDeck.length; updateFlashUI(); }, 200);
+    }
+    function prevFlash() {
+        if (!flashDeck.length) return;
+        document.getElementById('flashInner').classList.remove('is-flipped');
+        setTimeout(() => { flashIndex = (flashIndex - 1 + flashDeck.length) % flashDeck.length; updateFlashUI(); }, 200);
+    }
+    function embaralharFlashcards() {
+        sincronizarDeckFlash();
+        for (let i = flashDeck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [flashDeck[i], flashDeck[j]] = [flashDeck[j], flashDeck[i]];
+        }
+        flashIndex = 0;
+        document.getElementById('flashInner').classList.remove('is-flipped');
+        updateFlashUI();
+    }
+    function alternarModoRevisao() {
+        modoRevisao = !modoRevisao;
+        flashDeck = [];
+        flashIndex = 0;
+        document.getElementById('flashInner').classList.remove('is-flipped');
+        updateFlashUI();
+    }
+
+    async function deletar(i) {
+        if(!confirm("Excluir permanentemente?")) return;
+        if (auth.currentUser && dados[i].id) await db.collection("repertorios").doc(dados[i].id).delete();
+        else { dados.splice(i, 1); localStorage.setItem("reps", JSON.stringify(dados)); render(); }
+        fecharModal();
+    }
+
+    async function salvar() {
+        const t = document.getElementById("titulo"), d = document.getElementById("descricao"), u = document.getElementById("uso"), c = document.getElementById("categoria");
+        if(!t.value || !d.innerHTML) return;
+        const n = { titulo: t.value, categoria: c.value, uso: u.value, descricao: d.innerHTML, status: "medio", imagem: imagemBase64, createdAt: firebase.firestore.FieldValue.serverTimestamp(), userId: auth.currentUser?.uid || null };
+        if (auth.currentUser) await db.collection("repertorios").add(n);
+        else { n.createdAt = new Date(); dados.push(n); localStorage.setItem("reps", JSON.stringify(dados)); render(); }
+        t.value = u.value = ""; d.innerHTML = "";
+        removeImg();
+    }
+
+    async function atualizar() {
+        const i = indexAtual, t = document.getElementById('editTitulo').value, u = document.getElementById('editUso').value, d = document.getElementById('editDesc').innerHTML, c = document.getElementById('editCat').value;
+        if (auth.currentUser && dados[i].id) await db.collection("repertorios").doc(dados[i].id).update({ titulo: t, uso: u, descricao: d, categoria: c, imagem: imagemEditBase64 });
+        else { Object.assign(dados[i], {titulo:t, uso:u, descricao:d, categoria:c, imagem: imagemEditBase64}); localStorage.setItem("reps", JSON.stringify(dados)); render(); }
+        fecharModal();
+    }
+
+    function toggleMenu() { 
+    const s = document.getElementById("sidebar"),
+          o = document.getElementById("overlay"); 
+
+    if (window.innerWidth <= 768) { 
+        s.classList.toggle("active"); 
+        o.classList.toggle("active"); 
+    } else { 
+        s.classList.toggle("expanded"); 
+    } 
+}
+
+/* =========================
+   CLICK NO MENU ABRE TUDO
+========================= */
+document.getElementById("sidebar").addEventListener("click", function(e){
+
+    // impede abrir/recolher ao clicar nos botões
+    if(e.target.closest("button")) return;
+
+    // mobile
+    if(window.innerWidth <= 768){
+
+        this.classList.toggle("active");
+
+        document
+            .getElementById("overlay")
+            .classList.toggle("active");
+
+    }
+
+    // desktop
+    else{
+
+        this.classList.toggle("expanded");
+
+    }
+
+});
+
+    function switchTab(tabId, btn) { document.querySelectorAll('.section').forEach(s => s.style.display = 'none'); document.getElementById('tab-' + tabId).style.display = 'block'; document.getElementById('bannerPrincipal').style.display = tabId === 'flashcards' ? 'none' : 'flex'; if (tabId === 'redacoes') mostrarBibliotecaRedacoes(); document.querySelectorAll('.menu button').forEach(b => b.classList.remove('active')); btn.classList.add('active'); if(window.innerWidth <= 768) toggleMenu(); }
+    function fecharModal(e) { if(!e || e.target.id === "modal" || e.target.className === "close-btn") { document.getElementById('modalContent').style.transform = "scale(0.9)"; setTimeout(() => document.getElementById('modal').style.display = "none", 200); } }
+    function toggleTema() {
+
+    document.body.classList.toggle("dark");
+
+    if(document.body.classList.contains("dark")){
+
+        localStorage.setItem(
+            "tema",
+            "dark"
+        );
+
+    } else {
+
+        localStorage.setItem(
+            "tema",
+            "light"
+        );
+
+    }
+
+}
+
+
+// Carrega último tema salvo
+window.addEventListener(
+"DOMContentLoaded",
+()=>{
+
+    const temaSalvo =
+        localStorage.getItem(
+            "tema"
+        );
+
+    if(
+        temaSalvo==="dark"
+    ){
+
+        document.body.classList.add(
+            "dark"
+        );
+
+    } else {
+
+        document.body.classList.remove(
+            "dark"
+        );
+
+    }
+
+    carregarRedacoes();
+
+}
+);
+    function goHome(btn) { filtroAtual = "Todos"; aplicarCorInterface('Geral'); atualizarBannerEixo(); switchTab('home', btn); render(); }
+    function setFiltro(btn, cat) { filtroAtual = cat; aplicarCorInterface(cat); atualizarBannerEixo(); switchTab('home', btn); render(); }
+    async function updateStatusModal(s) { if (auth.currentUser && dados[indexAtual].id) await db.collection("repertorios").doc(dados[indexAtual].id).update({ status: s }); else { dados[indexAtual].status = s; localStorage.setItem("reps", JSON.stringify(dados)); } abrirModal(indexAtual); render(); }
+    function updateStatus(e, i, s) { e.stopPropagation(); indexAtual = i; updateStatusModal(s); }
+    
+    function aplicarCorInterface(cat) {
+    const cor = getCorEixo(cat);
+    document.getElementById('bannerPrincipal').style.background = cor;
+    document.getElementById('btnSalvar').style.background = cor;
+    document.getElementById('btnFlashNext').style.background = cor;
+    
+    // Adicione esta linha para o botão de voltar ao topo acompanhar o eixo:
+    document.getElementById('backToTop').style.background = cor; 
+}
+// Monitora o scroll para mostrar/esconder o botão
+window.addEventListener('scroll', () => {
+    const btn = document.getElementById('backToTop');
+    if (window.scrollY > 300) {
+        btn.classList.add('show');
+    } else {
+        btn.classList.remove('show');
+    }
+});
+
+// Função para subir suavemente
+function scrollToTop() {
+    window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+    });
+}
+</script>
+</body>
+</html>
